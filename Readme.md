@@ -7,7 +7,7 @@ This is a project to learn c programming, embedded programming, a little bit of 
 // keep Bookheader aligned with the power of 2 and not bigger then 512 bytes so
 // that it stays in one sector
 struct BookHeader {
-  uint8_t MagicByte;
+  uint16_t MagicByte; // DIYR -- diy reader
   uint8_t version;
 
   char title[64];
@@ -15,13 +15,13 @@ struct BookHeader {
   char series[64];
 
   uint16_t pages;
-  uint16_t progress;
+  uint16_t current_page;
 
   uint16_t page_width;
   uint16_t page_heigth;
   uint8_t bits_per_pixel; // one for black and white. 4 for grayscale
 
-  uint8_t reserved[246]; // keep the rest reserved for later ideas
+  uint8_t reserved[238]; // keep the rest reserved for later ideas
 };
 ```
 

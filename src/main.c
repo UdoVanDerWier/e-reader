@@ -3,23 +3,39 @@
 
 // keep Bookheader aligned with the power of 2 and not bigger then 512 bytes so
 // that it stays in one sector
+// TODO struct padding
 struct BookHeader {
-  uint8_t MagicByte;
   uint8_t version;
+  uint8_t bits_per_pixel; // one for black and white. 4 for grayscale
+
+  uint16_t pages;
+  uint16_t current_page;
+
+  uint16_t page_width;
+  uint16_t page_heigth;
+  uint16_t MagicByte;
 
   char title[64];
   char author[64];
   char series[64];
 
-  uint16_t pages;
-  uint16_t progress;
-
-  uint16_t page_width;
-  uint16_t page_heigth;
-  uint8_t bits_per_pixel; // one for black and white. 4 for grayscale
-
-  uint8_t reserved[246]; // keep the rest reserved for later ideas
+  uint8_t reserved[238]; // keep the rest reserved for later ideas
 };
 
 // arguments to give input for book to save
-int main(int argc, char *argv[]) { printf("Hello world\n"); }
+int main(int argc, char *argv[]) {
+  struct BookHeader b_header;
+  FILE *fp;
+  if (argc > 1) {
+    fp = fopen(argv[1], "rb");
+
+    if (fp == NULL) {
+      printf("Error opening file");
+      return 1;
+    }
+    fread(&b_header, sizeof(struct BookHeader), 1, fp);
+    fclose(fp);
+
+    printf("%u", b_header.page_width);
+  }
+}
