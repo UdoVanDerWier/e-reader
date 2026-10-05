@@ -1,11 +1,11 @@
 import struct
 import pymupdf
 
-VERSION = 1
+VERSION = 4
 # MAGICK_BYTE = "DIYR"
 MAGICK_BYTE = 69 
 
-# struct BookHeader {
+# typedef struct {
 #  uint8_t version;
 #  uint8_t bits_per_pixel; // one for black and white. 4 for grayscale
 #
@@ -21,8 +21,8 @@ MAGICK_BYTE = 69
 #  char series[64];
 #
 #  uint8_t reserved[238]; // keep the rest reserved for later ideas
-#};
-HEADER_FORMAT = "<HHIIIII64s64s64s238s"
+#} BookHeaderData;
+HEADER_FORMAT = "@BBHHHHH64s64s64s238s"
 
 file_name = input("file input")
 output = input("output file")
