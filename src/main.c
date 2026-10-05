@@ -27,6 +27,21 @@ typedef union {
   uint8_t raw[512];
 } BookHeader;
 
+int validate_file_type(FILE *fp) {
+  if (fseek(fp, 2, SEEK_SET) != 0) {
+    printf("Error finding magicbyte\n");
+    return 1;
+  }
+  uint16_t magicbyte = 0;
+  fread(&magicbyte, sizeof(magicbyte), 1, fp);
+  rewind(fp);
+
+  if (magicbyte != MAGIC_BYTE) {
+    printf("Couldn't find magicbyte\n");
+    return 1;
+  }
+  return 0;
+}
 // arguments to give input for book to save
 int main(int argc, char *argv[]) {
   BookHeader b_header;
@@ -38,17 +53,8 @@ int main(int argc, char *argv[]) {
       printf("Error opening file\n");
       return 1;
     }
-    if (fseek(fp, 2, SEEK_SET) != 0) {
-      printf("Error finding magicbyte\n");
-      return 1;
-    }
 
-    uint16_t magicbyte = 0;
-    fread(&magicbyte, sizeof(magicbyte), 1, fp);
-    rewind(fp);
-
-    if (magicbyte != MAGIC_BYTE) {
-      printf("couldn't find the magicbyte\n");
+    if (validate_file_type(fp) != 0) {
       return 1;
     }
     // TODO save file on disk else throw error
