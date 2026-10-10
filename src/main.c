@@ -10,11 +10,9 @@ typedef struct {
 
   uint16_t MagicByte;
   uint16_t pages;
-  uint16_t current_page; // keep in ram when book is open
-
-  uint16_t page_width;
-  uint16_t page_heigth;
-
+  uint16_t current_page;   // keep in ram when book is open
+  uint16_t offset_to_data; // byte_size // dynamic so that we can easily go to
+                           // the previouse page
   char title[64];
   char author[64];
   char series[64];
@@ -25,7 +23,20 @@ typedef struct {
 typedef union {
   BookHeaderData data;
   uint8_t raw[512];
+
 } BookHeader;
+
+typedef struct {
+  uint8_t flags; // e.g. Bookmarks, images, etc.
+
+  uint16_t page_number;
+  uint16_t page_width;  // TODO heb ik dit nodig?
+  uint16_t page_height; // TODO heb ik dit nodig?
+
+  uint32_t file_offset;
+  uint32_t data_size;
+
+} PageData;
 
 int validate_file_type(FILE *fp) {
   if (fseek(fp, 2, SEEK_SET) != 0) {
