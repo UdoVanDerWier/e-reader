@@ -11,6 +11,7 @@
 	
 - The file format must have a magic number.
 - For o(1) page search a chunk table would be great. page number with the offset to that page.
+
 ### Reading engine
 - Stream pages into memory, to keep the e-reader fast we want to have the previouse, current and next page into memory.
 - The reading engine should save the state of eachbook  in a file which is loaded into ram on boot. It should also support writes when pages are flipped. When having the page on the sd card it has cross device compatibility. To minimize data corruption and write tear on an sd card it should support a "change" bit and when that bit is set it should write every minute or so. 
