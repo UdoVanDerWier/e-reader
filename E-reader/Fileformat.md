@@ -1,3 +1,7 @@
+
+Laat het bestand in met memory mapped file Dan kan je werken met pointers ipv open read en seek.
+
+Geen struct slurping. Dit kan zelfs per compiler versie verschillen. ookal kan je door middel van pragma dit al groten deels voorkomen wordt het nog steed niet aangeraden.
 # Header
 
 | Fieldname      | Size     | Description                                                                                                                                                                                                     |
@@ -11,7 +15,7 @@
 | Title length   | 2 bytes  | For variable title length                                                                                                                                                                                       |
 | Title          | variable | Title of the book                                                                                                                                                                                               |
 | Author length  | 2 bytes  | For variable length of the author                                                                                                                                                                               |
-| Author         | 128      | Author(s) of the book                                                                                                                                                                                           |
+| Author         | variable | Author(s) of the book                                                                                                                                                                                           |
 | Chunk count    | 4 bytes  | Amount of chunks                                                                                                                                                                                                |
 
 # Chunk table
@@ -20,13 +24,15 @@ Each page is a chunk
 | Fieldname  | size | Description                         |
 | ---------- | ---- | ----------------------------------- |
 | pagenumber | 4    | The page number of chunk            |
+| ChunkType  | 1    | Check what type of chunk it is      |
 | offset     | 4    | offset (from byte 0)to chunk number |
+| length     | 4    | length of the data                  |
 
 # Chunk
 
 | Fieldname      | size     | Description                     |
 | -------------- | -------- | ------------------------------- |
-| Chunktype      | 1 byte   | Check what type of chunk it is. |
+| Chunktyp       | 1 byte   | Check what type of chunk it is. |
 | offset to data | 4 bytes  | For backwards compatiblity      |
 | Pagenumber     | 4 bytes  | The page number                 |
 | Length         | 4 bytes  | Length of data                  |
