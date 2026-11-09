@@ -1,4 +1,3 @@
-from os import SEEK_CUR
 from enum import Enum
 import struct
 
@@ -9,6 +8,7 @@ MAJOR = 0
 MINOR = 2
 
 HEADER_LENGTH = 32 # this is without the variable title and author length
+META_DATA_LENGTH = 24
 HEADER_FORMAT = ">4sIIIII"
 TABLE_FORMAT = ">IBII"
 doc = pymupdf.open()
@@ -24,36 +24,32 @@ class DocConvert :
         self.minor = MINOR
         self.magic=  MAGIC_BYTE
 
-        t_length, _ = self.__get_title()
-        a_length, _ = self.__get_author()
-        print(a_length)
-        self.table_length = 13 * (self.doc.page_count - 1) # - 1 because we leave out the frontpage
-        self.file_length = HEADER_LENGTH + a_length + t_length + self.table_length 
+        self.file_length = 0
+        self.header_length = 0
+
         self.chunk_table = {}
         self.pages = []
 
     def convert(self) : 
-        if self.file_length == 0 : 
-            print(f"file length 0, so something went wrong")
-            return
-
         self.__get_chunk_data()
 
         with open(self.output_path, "wb") as f : 
-            self.__write_header(f)
-            self.__write_chunk_table(f)
+            self.__write_metadata(f)
             self.__write_pages(f)
 
     def __write_pages(self, file) : 
+        if self.header_length > 0 : 
+            print("you have not written a header yet")
+        file.seek(self.header_length)
         for p in self.pages : 
             file.write(p)
 
-    def __write_chunk_table(self, file) : 
+    def __write_chunk_table(self, file, offset) : 
         chunk_table_format = "<IBII"
-
+        file.seek(offset)
+        length = 0
         for page in self.chunk_table : 
             table_col = self.chunk_table.get(page)
-
             file.write(
                 struct.pack(
                     chunk_table_format,
@@ -63,14 +59,17 @@ class DocConvert :
                     table_col.get("length")
                 )
             )
+            length += 13
 
-    def __write_header(self, file) :
+        return length
+
+    def __write_metadata(self, file) :
         header_format = "<4sIIIII"
 
-        title_len, title = self.__get_title()
-        author_len, author = self.__get_author()
-        chunk_c = self.__get_chunk_count()
-
+        book_data_len = self.__write_book_data(file)
+        offset = META_DATA_LENGTH + book_data_len
+        chunk_table_length = self.__write_chunk_table(file, offset)
+        file.seek(0)
         file.write(
             struct.pack(
                 header_format,
@@ -78,11 +77,22 @@ class DocConvert :
                 0,
                 self.major,
                 self.minor,
-                HEADER_LENGTH + self.table_length,
-                self.file_length,
+                offset,
+                self.file_length + offset + chunk_table_length,
             )
         )
+        self.header_length = META_DATA_LENGTH + book_data_len + chunk_table_length
+        print(f"file length : {self.file_length + offset + chunk_table_length}")
 
+
+
+    def __write_book_data(self, file):
+        attr_len = 8
+        title_len, title = self.__get_title()
+        author_len, author = self.__get_author()
+        chunk_c = self.__get_chunk_count()
+
+        file.seek(META_DATA_LENGTH)
         self.__write_variable(file, title_len, title)
         self.__write_variable(file, author_len, author)
 
@@ -92,6 +102,8 @@ class DocConvert :
                 chunk_c
             )
         )
+
+        return title_len + author_len + attr_len
          
 
     def __get_title(self) :
@@ -153,12 +165,8 @@ class DocDecode :
                 print("magic byte invalid")
 
             self.meta = self.__load_meta_data(f)
+            self.table = self.__load_table_data(f, self.meta.get("page_count"), self.meta.get("data_offset"))
 
-            book_data, offset = self.__load_book_data(f)
-            self.book_data = book_data
-
-            page_count = book_data.get("page_count")
-            self.table = self.__load_table_data(f, page_count, offset)
 
     def get_page(self, num) : 
         offset = self.table[num].get("offset")
@@ -169,6 +177,13 @@ class DocDecode :
             print(f.read(length).decode())
     
     def __load_meta_data(self, f) :
+        f.seek(META_DATA_LENGTH)
+        title_len = self._to_int(f.read(2))
+        title = f.read(title_len).decode()
+        author_len = self._to_int(f.read(2))
+        author = f.read(author_len).decode()
+        page_count = self._to_int(f.read(4))
+
         f.seek(4)
         return {
             "checksum": self._to_int(f.read(4)),
@@ -176,21 +191,10 @@ class DocDecode :
             "minor": self._to_int(f.read(4)), 
             "data_offset": self._to_int(f.read(4)),
             "file_length": self._to_int(f.read(4)),
-        }
-   
-    def __load_book_data(self, f) :
-        f.seek(24)
-        title_len = self._to_int(f.read(2))
-        title = f.read(title_len).decode()
-        author_len = self._to_int(f.read(2))
-        author = f.read(author_len).decode()
-        pages = self._to_int(f.read(4))
-
-        return {
             "title": title,
             "author": author,
-            "page_count": pages
-        }, f.tell()
+            "page_count": page_count 
+        }
 
     def __load_table_data(self, f, pages_count, offset) :
         f.seek(offset) 
@@ -205,7 +209,6 @@ class DocDecode :
 
         return table
 
-    
     def _to_int(self, val) :
         return int.from_bytes(val, byteorder="little", signed=False)
 
